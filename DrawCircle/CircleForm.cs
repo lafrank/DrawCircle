@@ -32,6 +32,7 @@ namespace DrawCircle
 			Rectangle r = new Rectangle(circleCenter.X - radius, circleCenter.Y - radius, 2 * radius, 2 * radius);
 			Pen p = Pens.Green;
 			g.DrawEllipse(p, r);
+			g.DrawLine(p, circleCenter, mousePosition);
 		}
 	}
 }
