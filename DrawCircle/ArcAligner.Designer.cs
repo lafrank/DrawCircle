@@ -1,6 +1,6 @@
 ﻿namespace DrawCircle
 {
-	partial class CircleForm
+	partial class ArcAligner
 	{
 		/// <summary>
 		/// Required designer variable.
@@ -28,49 +28,33 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.statusStrip1 = new System.Windows.Forms.StatusStrip();
-			this.tslStatus = new System.Windows.Forms.ToolStripStatusLabel();
-			this.statusStrip1.SuspendLayout();
 			this.SuspendLayout();
 			// 
-			// statusStrip1
-			// 
-			this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tslStatus});
-			this.statusStrip1.Location = new System.Drawing.Point(0, 266);
-			this.statusStrip1.Name = "statusStrip1";
-			this.statusStrip1.Size = new System.Drawing.Size(511, 22);
-			this.statusStrip1.TabIndex = 0;
-			this.statusStrip1.Text = "statusStrip1";
-			// 
-			// tslStatus
-			// 
-			this.tslStatus.Name = "tslStatus";
-			this.tslStatus.Size = new System.Drawing.Size(118, 17);
-			this.tslStatus.Text = "toolStripStatusLabel1";
-			// 
-			// CircleForm
+			// ArcAligner
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+			this.BackColor = System.Drawing.Color.Black;
 			this.ClientSize = new System.Drawing.Size(511, 288);
-			this.Controls.Add(this.statusStrip1);
-			this.Name = "CircleForm";
+			this.DoubleBuffered = true;
+			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+			this.Name = "ArcAligner";
+			this.ShowInTaskbar = false;
+			this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
 			this.Text = "Form1";
+			this.TransparencyKey = System.Drawing.Color.Black;
+			this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.CircleForm_FormClosed);
 			this.Paint += new System.Windows.Forms.PaintEventHandler(this.CircleForm_Paint);
+			this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CircleForm_KeyDown);
 			this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.CircleForm_MouseClick);
 			this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CircleForm_MouseMove);
-			this.statusStrip1.ResumeLayout(false);
-			this.statusStrip1.PerformLayout();
+			this.Move += new System.EventHandler(this.CircleForm_Move);
+			this.Resize += new System.EventHandler(this.CircleForm_Resize);
 			this.ResumeLayout(false);
-			this.PerformLayout();
 
 		}
 
 		#endregion
-
-		private System.Windows.Forms.StatusStrip statusStrip1;
-		private System.Windows.Forms.ToolStripStatusLabel tslStatus;
 	}
 }
 

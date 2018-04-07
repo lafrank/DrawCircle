@@ -16,7 +16,7 @@ namespace DrawCircle
 		{
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
-			Application.Run(new CircleForm());
+			Application.Run(new MainForm());
 		}
 	}
 }
