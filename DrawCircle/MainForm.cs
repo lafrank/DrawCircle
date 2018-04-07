@@ -19,8 +19,9 @@ namespace DrawCircle
 
 		private void alignCircularToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			ArcAligner ca = new ArcAligner(this, 5);
+			ArcAligner ca = new ArcAligner();
 			ca.OnAlignmentFinished += Ca_OnAlignmentFinished;
+			ca.StartAlignment(this, 5);
 		}
 
 		private void Ca_OnAlignmentFinished(ArcAligner sender)

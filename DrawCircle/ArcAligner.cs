@@ -8,7 +8,7 @@ namespace DrawCircle
 	/// <summary>
 	/// This Form is a special form that can be used as a transparent overlay over another form to select alignment points over an Arc
 	/// </summary>
-	public partial class ArcAligner : Form
+	public partial class ArcAligner
 	{
 		#region internals
 		internal enum AlignerState { Init, Centering, Sizing, SetWedge }
@@ -18,9 +18,9 @@ namespace DrawCircle
 		private Point circleCenter;
 		private Point mousePosition;
 		private int radius = -1;
-		private AlignerState state = AlignerState.Centering;
+		private AlignerState state = AlignerState.Init;
 		private Point[] _placeholders = new Point[0];
-		private Form _overLaymaster;
+		private Control _master;
 		#endregion
 
 		#region Properties
@@ -47,7 +47,7 @@ namespace DrawCircle
 		/// <summary>
 		/// Determines if hint texts are displayed
 		/// </summary>
-		public bool ShowHints { get; set; }
+		public bool ShowHints { get; set; } = true;
 
 		/// <summary>
 		/// Get or sets the Color of the guidance message
@@ -79,22 +79,48 @@ namespace DrawCircle
 		/// <summary>
 		/// Creates a new instance of CircularAligner
 		/// </summary>
-		/// <param name="parentForm">The parent control where to use the alighner as a transparent overlay</param>
-		/// <param name="PlaceholderNumber"></param>
-		/// <param name="AlignmentFinishedCallback"></param>
-		public ArcAligner(Form ParentControl, int PlaceholderNumber)
+		public ArcAligner()
 		{
-			if (ParentControl == null) throw new ArgumentException("ParentFrom value must not be null");
+		}
+		#endregion
+
+		#region Public members
+		public void StartAlignment(Control Master, int PlaceholderNumber)
+		{
+			if (Master == null) throw new ArgumentException("Underlay control must not be null");
 			if (PlaceholderNumber <= 0) throw new ArgumentException("PlaceholderNumber value must a non-negative number greater than zero.");
-			InitializeComponent();
-			NumberOfPlaceholders = PlaceholderNumber;
-			RegisterOverlay(ParentControl);
-			Show(ParentControl);
+			if (_master == null)
+			{
+				NumberOfPlaceholders = PlaceholderNumber;
+				RegisterMaster(Master);
+				state = AlignerState.Centering;
+				_master.Cursor = Cursors.Cross;
+				_master.Invalidate();
+			}
 		}
 
+		public void CancelAlignment()
+		{
+			if (_master != null)
+			{
+				AlignmentResult = AlignmentResult.Canceled;
+				Control oldMaster = _master;
+				UnregisterMaster();
+				oldMaster?.Invalidate();
+			}
+		}
 		#endregion
 
 		#region Private methods
+		private void Close()
+		{
+			if (_master != null) _master.Cursor = Cursors.Default;
+			Control oldMaster = _master;
+			UnregisterMaster();
+			oldMaster?.Invalidate();
+			OnAlignmentFinished?.Invoke(this);
+		}
+
 		private void DrawCross(Point p, Graphics g, Color crossColor, int crossSize = 2, int lineWidth = 1)
 		{
 			Point a = new Point(p.X - crossSize, p.Y - crossSize);
@@ -113,35 +139,40 @@ namespace DrawCircle
 
 		private void DrawTextInCenter(string message, Graphics g)
 		{
-			SizeF s = TextRenderer.MeasureText(message, this.Font);
-			Point center = new Point(this.Width / 2, this.Height / 2);
+			SizeF s = TextRenderer.MeasureText(message, _master.Font);
+			Point center = new Point(_master.Width / 2, _master.Height / 2);
 			Point textLocation = new Point(center.X - (int)(s.Width / 2), center.Y - (int)(s.Height / 2));
 			using (Brush textBrush = new SolidBrush(HintTextColor))
 			{
 				g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-				TextRenderer.DrawText(g, message, this.Font, textLocation, HintTextColor);
+				TextRenderer.DrawText(g, message, _master.Font, textLocation, HintTextColor);
 			}
 		}
 
-		private void RegisterOverlay(Form master)
+		private void RegisterMaster(Control master)
 		{
-			//this.Parent = master.Parent;
-			this._overLaymaster = master;
+			this._master = master;
 			//
-			this.Location = master.Location;
-			this.Size = _overLaymaster.ClientRectangle.Size;
-			_overLaymaster.MouseMove += CircleForm_MouseMove;
-			_overLaymaster.MouseClick += CircleForm_MouseClick;
-			_overLaymaster.KeyDown += CircleForm_KeyDown;
-			_overLaymaster.Move += CircleForm_Move;
-			_overLaymaster.Resize += CircleForm_Resize;
+			if (_master != null)
+			{
+				_master.Paint += ArcAligner_Paint;
+				_master.MouseMove += ArcAligner_MouseMove;
+				_master.MouseClick += ArcAligner_MouseClick;
+				_master.KeyDown += ArcAligner_KeyDown;
+			}
 		}
 
-		private void UnregisterOverlay()
+		private void UnregisterMaster()
 		{
-			_overLaymaster.MouseMove -= CircleForm_MouseMove;
-			_overLaymaster.MouseClick -= CircleForm_MouseClick;
-			_overLaymaster.KeyDown -= CircleForm_KeyDown;
+			if (_master != null)
+			{
+				_master.Paint -= ArcAligner_Paint;
+				_master.MouseMove -= ArcAligner_MouseMove;
+				_master.MouseClick -= ArcAligner_MouseClick;
+				_master.KeyDown -= ArcAligner_KeyDown;
+				//
+				this._master = null;
+			}
 		}
 		#endregion
 
@@ -150,15 +181,14 @@ namespace DrawCircle
 		#endregion
 
 		#region Event handlers
-		// all events are hooked up to master Form
-		private void CircleForm_MouseClick(object sender, MouseEventArgs e)
+		private void ArcAligner_MouseClick(object sender, MouseEventArgs e)
 		{
 			bool reset = Control.ModifierKeys == Keys.Shift;
 			if (reset)
 			{
 				state = AlignerState.Centering;
-				this.Cursor = Cursors.Cross;
-				Invalidate();
+				_master.Cursor = Cursors.Cross;
+				_master.Invalidate();
 			}
 			else
 			{
@@ -167,26 +197,28 @@ namespace DrawCircle
 					case AlignerState.Init:
 						{
 							state = AlignerState.Centering;
-							this.Cursor = Cursors.Cross;
+							_master.Cursor = Cursors.Cross;
+							_master.Invalidate();
 							break;
 						}
 					case AlignerState.Centering:
 						{
 							state = AlignerState.Sizing;
-							this.Cursor = Cursors.SizeAll;
+							_master.Cursor = Cursors.SizeAll;
 							circleCenter = e.Location;
+							_master.Invalidate();
 							break;
 						}
 					case AlignerState.Sizing:
 						{
 							state = AlignerState.SetWedge;
-							this.Cursor = Cursors.Hand;
+							_master.Cursor = Cursors.Hand;
+							_master.Invalidate();
 							break;
 						}
 					case AlignerState.SetWedge:
 						{
 							AlignmentResult = AlignmentResult.Confirmed;
-							this.Cursor = Cursors.Arrow;
 							Close();
 							break;
 						}
@@ -195,7 +227,7 @@ namespace DrawCircle
 
 		}
 
-		private void CircleForm_MouseMove(object sender, MouseEventArgs e)
+		private void ArcAligner_MouseMove(object sender, MouseEventArgs e)
 		{
 			switch (state)
 			{
@@ -203,13 +235,13 @@ namespace DrawCircle
 				case AlignerState.SetWedge:
 					{
 						mousePosition = e.Location;
-						Invalidate();
+						_master.Invalidate();
 						break;
 					}
 			}
 		}
 
-		private void CircleForm_Paint(object sender, PaintEventArgs e)
+		private void ArcAligner_Paint(object sender, PaintEventArgs e)
 		{
 			switch (state)
 			{
@@ -306,7 +338,7 @@ namespace DrawCircle
 			}
 		}
 
-		private void CircleForm_KeyDown(object sender, KeyEventArgs e)
+		private void ArcAligner_KeyDown(object sender, KeyEventArgs e)
 		{
 			if (e.KeyCode == Keys.Escape)
 			{
@@ -315,21 +347,6 @@ namespace DrawCircle
 			}
 		}
 
-		private void CircleForm_FormClosed(object sender, FormClosedEventArgs e)
-		{
-			UnregisterOverlay();
-			OnAlignmentFinished?.Invoke(this);
-		}
-
-		private void CircleForm_Move(object sender, EventArgs e)
-		{
-			this.Location = _overLaymaster.Location;
-		}
-
-		private void CircleForm_Resize(object sender, EventArgs e)
-		{
-			this.Size = _overLaymaster.Size;
-		}
 		#endregion
 	}
 
